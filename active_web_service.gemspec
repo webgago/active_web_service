@@ -19,7 +19,13 @@ Gem::Specification.new do |s|
   s.require_paths = ['lib', 'app/controllers']
 
   # specify any dependencies here; for example:
-  # s.add_development_dependency "rspec"
+  s.add_development_dependency "rails"
+  s.add_development_dependency "rspec-rails"
+  s.add_development_dependency "guard-rspec"
+
+  s.add_runtime_dependency 'nokogiri'
   s.add_runtime_dependency 'libxml-ruby'
   s.add_runtime_dependency 'libxslt-ruby19'
+  s.add_runtime_dependency 'wsdl-reader'
+  s.add_runtime_dependency 'actionpack'
 end

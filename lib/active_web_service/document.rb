@@ -1,5 +1,3 @@
-require 'xsd/qname'
-require 'wsdl/info'
 require 'wsdl/importer'
 require 'wsdl/xml_schema/importer'
 require "active_web_service/type"
