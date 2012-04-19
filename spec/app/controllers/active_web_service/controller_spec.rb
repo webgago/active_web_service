@@ -5,18 +5,13 @@ class TestController < ActiveWebService::Controller
   layout "application"
   prepend_view_path 'spec/fixtures/views'
 
-  def index
-    raise
-  end
-
-  def get_first_name
+  def get_first_name_operation
     @first_name = "Anton"
   end
 end
 
 
 describe "Controller" do
-  include RSpec::Rails::ViewRendering
 
   it "should not respond to index action, but route to it" do
     expect { post :index }.to raise_error
@@ -40,15 +35,14 @@ describe "Controller" do
       Class.new ActiveWebService::Controller do
         wsdl "spec/fixtures/UserService.wsdl"
 
-        def get_first_name
-
+        def get_first_name_operation
         end
       end
     end
 
     its(:wsdl_location) { should eq "spec/fixtures/UserService.wsdl" }
-    its(:document) { should be_a WSDL::Reader::Parser }
-    its(:action_methods) { should eq Set.new(["get_first_name"]) }
+    its(:wsdl_document) { should be_a WSDL::Reader::Parser }
+    its(:action_methods) { should eq Set.new(["get_first_name_operation"]) }
 
   end
 
@@ -58,13 +52,24 @@ describe "Controller" do
     end
 
     before do
-      xml = File.read('spec/fixtures/get_first_name.request.xml')
+      xml  = File.read('spec/fixtures/get_first_name.request.xml')
       @env = {
-        'action_dispatch.request.path_parameters' => { :controller => 'test', :action => 'get_first_name', :format => 'xml' },
-        'rack.input' => StringIO.new(xml),
-        'RAW_POST_DATA' => xml,
-        'REQUEST_METHOD' => 'POST'
+          'action_dispatch.request.path_parameters' => { :controller => 'test', :action => 'index', :format => 'xml' },
+          'rack.input'                              => StringIO.new(xml),
+          'RAW_POST_DATA'                           => xml,
+          'REQUEST_METHOD'                          => 'POST'
       }
+    end
+
+    def env_for(hash = { })
+      hash['RAW_POST_DATA'] = hash.delete(:xml) if hash.key? :xml
+      @env.merge!(hash)
+      @env['rack.input'] = StringIO.new(@env['RAW_POST_DATA'])
+      @env
+    end
+
+    def controller
+      @env['action_controller.instance']
     end
 
     context "behavior" do
@@ -75,17 +80,43 @@ describe "Controller" do
       end
 
       it "should set action from posted xml before dispatch" do
-        TestController.any_instance.should_receive(:get_first_name)
+        TestController.any_instance.should_receive(:get_first_name_operation)
         TestController.call @env
+      end
+
+      it "should raise RoutingError for not implemented actions" do
+        expect {
+          TestController.call env_for(xml: File.read('spec/fixtures/not_implemented.request.xml'))
+        }.to raise_error ActionController::RoutingError
       end
 
       it "should set assigns" do
-        TestController.any_instance.should_receive(:render)
         TestController.call @env
-        @env['action_controller.instance'].view_assigns['first_name'].should eq 'Anton'
+        controller.view_assigns['first_name'].should eq 'Anton'
+      end
+
+      it "should render template" do
+        TestController.call @env
+        controller.response.body.should eq <<-XML
+<layout>
+<get_first_name>
+  <result>Anton</result>
+</get_first_name>
+</layout>
+        XML
+      end
+    end
+
+    context "custom binding name" do
+
+      it "should raise RoutingError for not implemented actions in specific binding" do
+        TestController.wsdl "spec/fixtures/UserService.wsdl", "UserServicePortBinding2"
+
+        expect {
+          TestController.call @env
+        }.to raise_error ActionController::RoutingError
       end
 
     end
-
   end
 end

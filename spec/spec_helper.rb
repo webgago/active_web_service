@@ -7,6 +7,7 @@
 
 require "active_web_service"
 require 'rspec/autorun'
+require 'rspec/rails/adapters'
 require 'rspec/rails/view_rendering'
 require 'rspec/rails/adapters'
 require 'rspec/rails/matchers'

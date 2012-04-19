@@ -10,31 +10,31 @@
     </xs:schema>
   </types>
 
-  <message name="getFirstName">
+  <message name="getFirstNameRequest">
     <part name="parameters" element="tns:GetFirstName"/>
   </message>
-  <message name="getLastName">
+  <message name="getLastNameRequest">
     <part name="parameters" element="tns:GetLastName"/>
   </message>
 
-  <message name="UserNameResponse">
+  <message name="userNameResponse">
     <part name="parameters" element="xs:string"/>
   </message>
 
   <portType name="UserService">
-    <operation name="getFirstName">
-      <input message="tns:getFirstName"/>
-      <output message="tns:UserNameResponse"/>
+    <operation name="getFirstNameOperation">
+      <input message="tns:getFirstNameRequest"/>
+      <output message="tns:userNameResponse"/>
     </operation>
-    <operation name="getLastName">
-      <input message="tns:getLastName"/>
-      <output message="tns:UserNameResponse"/>
+    <operation name="getLastNameOperation">
+      <input message="tns:getLastNameRequest"/>
+      <output message="tns:userNameResponse"/>
     </operation>
   </portType>
 
   <binding name="UserServicePortBinding" type="tns:UserService">
     <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
-    <operation name="getFirstName">
+    <operation name="getFirstNameOperation">
       <soap:operation soapAction=""/>
       <input>
         <soap:body use="literal"/>
@@ -43,7 +43,20 @@
         <soap:body use="literal"/>
       </output>
     </operation>
-    <operation name="getLastName">
+    <operation name="getLastNameOperation">
+      <soap:operation soapAction=""/>
+      <input>
+        <soap:body use="literal"/>
+      </input>
+      <output>
+        <soap:body use="literal"/>
+      </output>
+    </operation>
+  </binding>
+
+  <binding name="UserServicePortBinding2" type="tns:UserService">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <operation name="getLastNameOperation">
       <soap:operation soapAction=""/>
       <input>
         <soap:body use="literal"/>

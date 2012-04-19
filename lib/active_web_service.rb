@@ -4,6 +4,8 @@ require "action_controller"
 require "wsdl-reader"
 require "libxml"
 
+require "active_web_service/soap_request"
+
 module ActiveWebService
   extend ActiveSupport::Autoload
 

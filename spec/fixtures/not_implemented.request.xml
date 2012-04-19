@@ -1,0 +1,11 @@
+<soapenv:Envelope
+    xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+    xmlns:tns="http://example.com/UserService/">
+<soapenv:Header/>
+  <soapenv:Body>
+    <tns:NotImplimented>
+      <userIdentifier>1</userIdentifier>
+    </tns:NotImplimented>
+  </soapenv:Body>
+</soapenv:Header>
+
