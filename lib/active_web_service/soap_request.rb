@@ -16,8 +16,8 @@ module ActiveWebService
       raise ActionController::RoutingError, e.message
     end
 
-    def element_name
-      @element_name ||= xml_doc.xpath('//Body/*[1]').first.name
+    def element
+      @element ||= xml_doc.xpath('//Body/*[1]').first
     end
 
     def operations
@@ -31,8 +31,8 @@ module ActiveWebService
     private
 
     def lookup_operation
-      op = wsdl.lookup_operation_by_element!(:input, element_name, port_types)
-      operations[op] ? operations[op] : raise(WSDL::Reader::OperationNotFoundError.new(:input, element_name))
+      op = wsdl.lookup_operation_by_element!(:input, element.name, port_types)
+      operations[op] ? operations[op] : raise(WSDL::Reader::OperationNotFoundError.new(:input, element.name))
     end
 
     def xml_doc
