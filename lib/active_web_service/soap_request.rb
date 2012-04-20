@@ -1,13 +1,18 @@
 require "nokogiri"
+require "active_web_service/errors"
 
 module ActiveWebService
   class SoapRequest
 
-    attr_reader :xml, :wsdl, :binding
-    protected :xml, :wsdl
+    attr_reader :xml, :wsdl, :binding, :binding_name
 
-    def initialize(xml, wsdl, binding = nil)
-      @xml, @wsdl, @binding = xml, wsdl, wsdl.bindings[binding]
+    def initialize(xml, wsdl, binding_name = nil)
+      @xml, @wsdl, @binding_name = xml, wsdl, binding_name
+      setup_binding
+    end
+
+    def xml_document
+      @xml_document ||= parse_input_data(xml)
     end
 
     def operation
@@ -16,8 +21,14 @@ module ActiveWebService
       raise ActionController::RoutingError, e.message
     end
 
+    def element_name
+      element.name
+    end
+
     def element
-      @element ||= xml_doc.xpath('//Body/*[1]').first
+      @element ||= xml_document.xpath('//Body/*[1]').first.tap do |e|
+        raise SoapRequestError, "Could not found message element" if e.nil? || !e.respond_to?(:name) || e.name.blank?
+      end
     end
 
     def operations
@@ -30,13 +41,18 @@ module ActiveWebService
 
     private
 
-    def lookup_operation
-      op = wsdl.lookup_operation_by_element!(:input, element.name, port_types)
-      operations[op] ? operations[op] : raise(WSDL::Reader::OperationNotFoundError.new(:input, element.name))
+    def setup_binding
+      return unless @binding_name.present?
+      @binding = wsdl.bindings[@binding_name]
+
+      unless @binding.present?
+        raise ArgumentError, "binding '#{@binding_name}' not found in #{wsdl.location}"
+      end
     end
 
-    def xml_doc
-      @xml_doc ||= parse_input_data(xml)
+    def lookup_operation
+      op = wsdl.lookup_operation_by_element!(:input, element_name, port_types)
+      operations[op] ? operations[op] : raise(WSDL::Reader::OperationNotFoundError.new(:input, element_name))
     end
 
     def parse_input_data(raw_post)
