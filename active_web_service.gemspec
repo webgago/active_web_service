@@ -25,7 +25,6 @@ Gem::Specification.new do |s|
 
   s.add_runtime_dependency 'nokogiri'
   s.add_runtime_dependency 'libxml-ruby'
-  s.add_runtime_dependency 'libxslt-ruby19'
   s.add_runtime_dependency 'wsdl-reader'
   s.add_runtime_dependency 'actionpack'
 end
