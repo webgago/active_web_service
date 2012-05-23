@@ -33,8 +33,7 @@ describe ActiveWebService::Client do
     it "should find service address in wsdl and set it to endpoint" do
       subject.bind 'spec/fixtures/UserService.wsdl' => 'UserServicePortBinding'
       instance = subject.new
-      instance.client.wsdl.document.should eql "spec/fixtures/UserService.wsdl"
-      instance.client.wsdl.endpoint.should eql "http://service-host.org/userService"
+      instance.endpoint.should eql "http://service-host.org/userService"
     end
   end
 

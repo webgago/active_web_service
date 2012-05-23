@@ -5,7 +5,7 @@ module ActiveWebService
     end
 
     class_attribute :service, :enable, :disabled_actions, :default_xml_namespaces
-    class_attribute :wsdl_location, :wsdl_document, :wsdl_binding
+    class_attribute :wsdl_location, :wsdl_document, :wsdl_binding, :endpoint
 
     self.enable = true
     self.disabled_actions = []
@@ -15,13 +15,11 @@ module ActiveWebService
     include AbstractController::Layouts
     include ActionController::Helpers
 
-    include Savon::Model
-
     self.helpers_path << 'app/helpers'
     self.prepend_view_path 'app/views'
 
     helper ApplicationHelper if Object.const_defined? :ApplicationHelper
-    helper_method :service, :xml_namespaces
+    helper_method :service, :xml_namespaces, :request_element, :data
 
 
     def self.bind(url_and_binding_name = { })
@@ -31,8 +29,7 @@ module ActiveWebService
 
       raise ArgumentError, "binding name '#{binding_name}' not found in wsdl '#{self.wsdl_location}'" unless self.wsdl_binding
 
-      self.document(self.wsdl_location)
-      self.endpoint(self.wsdl_binding.service_address(self.wsdl_document.services))
+      self.endpoint = self.wsdl_binding.service_address(self.wsdl_document.services)
     end
 
     class << self
@@ -46,13 +43,16 @@ module ActiveWebService
 
     abstract!
 
-    attr_accessor :response_body, :action_name
+    attr_accessor :response_body, :action_name, :data
     alias request_body response_body
     alias request_body= response_body=
+
+    attr_reader :request_element
 
     def initialize(*)
       super
       self.formats = ['xml']
+      self.data = SoapDataHash.new
     end
 
     def controller_path
@@ -60,7 +60,7 @@ module ActiveWebService
     end
 
     def callable?(action)
-      enable && action.not_in?(disabled_actions)
+      enable && disabled_actions.exclude?(action)
     end
 
     def xml_namespaces(namespaces = { })
@@ -69,12 +69,22 @@ module ActiveWebService
 
     private
 
+    def request
+      request = HTTPI::Request.new
+      request.url = endpoint
+      request.body = request_body
+      request.headers["Content-Type"] ||= "text/xml;charset=UTF-8"
+      request.headers["Content-Length"] ||= request_body.length.to_s
+      HTTPI.post request
+    end
+
     def call(action)
-      unless callable? action
-        client.request :type, action.to_s, namespaces do
-          soap.body    = request_body
-          http.headers = { }
-        end
+      @action_name     = action.to_s.underscore
+      @request_element = action.to_s.camelize(:lower).to_sym
+      render @action_name
+
+      if callable? action
+        request
       end
     end
   end
