@@ -9,9 +9,13 @@ module ActiveWebService
     class_attribute :wsdl_location, :instance_reader => true, :instance_writer => false
     class_attribute :wsdl_document, :instance_reader => true
     class_attribute :wsdl_binding, :instance_reader => true
+    class_attribute :default_format, :service, :default_xml_namespaces
 
-    class_attribute :default_format
     self.default_format = 'xml'
+    self.default_xml_namespaces = {}
+
+    helper_method :service, :xml_namespaces
+
 
     def self.wsdl(location, binding = nil)
       self.wsdl_location = location
@@ -20,6 +24,11 @@ module ActiveWebService
     end
 
     DEFAULT_PROTECTED_INSTANCE_VARIABLES << "@_soap_request"
+
+    def initialize(*)
+      super
+      self.formats = ['xml']
+    end
 
     def index
       raise ActionController::RoutingError.new "index action should not be called with soap\n request: #{soap_request}"
@@ -46,10 +55,15 @@ module ActiveWebService
       super(request.symbolized_path_parameters[:action])
     end
 
+    private
+
     def rewrite_action_and_format(action, format)
       request.path_parameters = request.path_parameters.merge('action' => action, 'format' => format)
     end
-    private :rewrite_action_and_format
+
+    def xml_namespaces(namespaces = { })
+      default_xml_namespaces.reverse_merge namespaces
+    end
 
   end
 end

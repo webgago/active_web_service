@@ -10,5 +10,6 @@ module ActiveWebService
   extend ActiveSupport::Autoload
 
   autoload :Controller
+  autoload :Client
 end
 
