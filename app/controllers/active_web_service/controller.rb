@@ -6,9 +6,7 @@ module ActiveWebService
 
     self.allow_forgery_protection = false
 
-    class_attribute :wsdl_location, :instance_reader => true, :instance_writer => false
-    class_attribute :wsdl_document, :instance_reader => true
-    class_attribute :wsdl_binding, :instance_reader => true
+    class_attribute :wsdl_location, :wsdl_document, :wsdl_binding, :instance_writer => false
     class_attribute :default_format, :service, :default_xml_namespaces
 
     self.default_format = 'xml'
@@ -30,6 +28,10 @@ module ActiveWebService
       self.formats = ['xml']
     end
 
+    def soap_request
+      @_soap_request
+    end
+
     def index
       raise ActionController::RoutingError.new "index action should not be called with soap\n request: #{soap_request}"
     end
@@ -39,23 +41,19 @@ module ActiveWebService
       super(soap_request.operation, request)
     end
 
-    def make_soap_request(name, request)
-      @_request      = request
-      @_soap_request = SoapRequest.new(request.raw_post, wsdl_document, wsdl_binding)
-
-      rewrite_action_and_format(soap_request.operation, self.class.default_format)
-    end
-
-    def soap_request
-      @_soap_request
-    end
-
     def process(action, *args)
       make_soap_request(action, request) unless @_soap_request
       super(request.symbolized_path_parameters[:action])
     end
 
     private
+
+    def make_soap_request(name, request)
+      @_request      = request
+      @_soap_request = SoapRequest.new(request.raw_post, wsdl_document, wsdl_binding)
+
+      rewrite_action_and_format(soap_request.operation, self.class.default_format)
+    end
 
     def rewrite_action_and_format(action, format)
       request.path_parameters = request.path_parameters.merge('action' => action, 'format' => format)

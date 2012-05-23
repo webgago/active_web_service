@@ -31,7 +31,7 @@ describe ActiveWebService::SoapRequest do
 
   context "#element" do
     it "should parse element name from xml" do
-      subject
+      subject.element_name.should eql 'GetFirstName'
     end
   end
 
@@ -48,7 +48,7 @@ describe ActiveWebService::SoapRequest do
     end
 
     it "should lookup operation by element" do
-
+      subject.operation.should eql 'get_first_name_operation'
     end
   end
 

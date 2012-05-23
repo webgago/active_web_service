@@ -56,7 +56,7 @@ module ActiveWebService
     end
 
     def parse_input_data(raw_post)
-      document = Nokogiri.parse raw_post
+      document = Nokogiri::XML(raw_post)
       document.remove_namespaces!
     end
 

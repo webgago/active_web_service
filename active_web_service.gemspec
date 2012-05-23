@@ -27,4 +27,5 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'libxml-ruby'
   s.add_runtime_dependency 'wsdl-reader'
   s.add_runtime_dependency 'actionpack'
+  s.add_runtime_dependency 'savon_model'
 end

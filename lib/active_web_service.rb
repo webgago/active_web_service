@@ -3,7 +3,7 @@ require "abstract_controller"
 require "action_controller"
 require "wsdl-reader"
 require "libxml"
-
+require "savon_model"
 require "active_web_service/soap_request"
 
 module ActiveWebService

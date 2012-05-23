@@ -69,7 +69,7 @@
 
   <service name="UserService">
     <port name="UserServicePort" binding="tns:UserServicePortBinding">
-      <soap:address location="REPLACE_WITH_ACTUAL_URL"/>
+      <soap:address location="http://service-host.org/userService"/>
     </port>
   </service>
 
