@@ -21,6 +21,9 @@ module ActiveWebService
     helper ApplicationHelper if Object.const_defined? :ApplicationHelper
     helper_method :service, :xml_namespaces, :request_element, :data
 
+    def self.add_xmlns(hash = {})
+      default_xml_namespaces.merge! hash
+    end
 
     def self.bind(url_and_binding_name = { })
       self.wsdl_location, binding_name = url_and_binding_name.first
