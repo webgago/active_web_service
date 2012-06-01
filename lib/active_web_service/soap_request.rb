@@ -26,7 +26,7 @@ module ActiveWebService
     end
 
     def element
-      @element ||= xml_document.xpath('//Body/*[1]').first.tap do |e|
+      @element ||= xml_document.xpath('//soap:Body/*[1]', 'soap' => 'http://schemas.xmlsoap.org/soap/envelope/').first.tap do |e|
         raise SoapRequestError, "Could not found message element" if e.nil? || !e.respond_to?(:name) || e.name.blank?
       end
     end
@@ -56,8 +56,7 @@ module ActiveWebService
     end
 
     def parse_input_data(raw_post)
-      document = Nokogiri::XML(raw_post)
-      document.remove_namespaces!
+      Nokogiri::XML(raw_post)
     end
 
   end
