@@ -1,94 +1,72 @@
 module ActiveWebService
   class Client
-    def self.controller_path
-      name.sub(/Client$/, '').underscore unless anonymous?
-    end
+    class EndpointResolver
+      def self.call(wsdl_path_and_binding_name)
+        wsdl_location, binding_name = wsdl_path_and_binding_name.first
+        wsdl_document               = WSDL::Reader::Parser.new(wsdl_location)
+        wsdl_binding                = wsdl_document.bindings[binding_name]
 
-    class_attribute :service, :enable, :disabled_actions, :default_xml_namespaces
-    class_attribute :wsdl_location, :wsdl_document, :wsdl_binding, :endpoint
+        raise ArgumentError, "binding name '#{binding_name}' not found in wsdl '#{wsdl_location}'" unless wsdl_binding
 
-    self.enable = true
-    self.disabled_actions = []
-    self.default_xml_namespaces = {}
-
-    include AbstractController::Rendering
-    include AbstractController::Layouts
-    include ActionController::Helpers
-
-    self.helpers_path << 'app/helpers'
-    self.prepend_view_path 'app/views'
-
-    helper ApplicationHelper if Object.const_defined? :ApplicationHelper
-    helper_method :service, :xml_namespaces, :request_element, :data
-
-    def self.add_xmlns(hash = {})
-      default_xml_namespaces.merge! hash
-    end
-
-    def self.bind(url_and_binding_name = { })
-      self.wsdl_location, binding_name = url_and_binding_name.first
-      self.wsdl_document = WSDL::Reader::Parser.new(self.wsdl_location)
-      self.wsdl_binding  = wsdl_document.bindings[binding_name]
-
-      raise ArgumentError, "binding name '#{binding_name}' not found in wsdl '#{self.wsdl_location}'" unless self.wsdl_binding
-
-      self.endpoint = self.wsdl_binding.service_address(self.wsdl_document.services)
-    end
-
-    class << self
-      attr_reader :abstract
-      alias_method :abstract?, :abstract
-
-      def abstract!
-        @abstract = true
+        wsdl_binding.service_address(wsdl_document.services)
       end
     end
 
-    abstract!
+    class_attribute :enable, :disabled_actions
+    class_attribute :service, :endpoint, :wsdl_path_and_binding_name
 
-    attr_accessor :response_body, :action_name, :data
-    alias request_body response_body
-    alias request_body= response_body=
+    self.disabled_actions = []
+    self.enable           = true
+
+    def self.bind(wsdl_path_and_binding_name = { })
+      self.wsdl_path_and_binding_name = wsdl_path_and_binding_name
+    end
 
     attr_reader :request_element
+    attr_accessor :last_response, :last_request
+    attr_accessor :request_body, :action_name
 
-    def initialize(*)
-      super
-      self.formats = ['xml']
-      self.data = SoapDataHash.new
-    end
-
-    def controller_path
-      self.class.controller_path
-    end
-
-    def callable?(action)
-      enable && disabled_actions.exclude?(action)
-    end
-
-    def xml_namespaces(namespaces = { })
-      default_xml_namespaces.merge namespaces
+    def initialize(endpoint_resolver=EndpointResolver)
+      self.class.endpoint = endpoint_resolver.call(wsdl_path_and_binding_name) unless self.endpoint
     end
 
     private
 
     def request
-      request = HTTPI::Request.new
-      request.url = endpoint
-      request.body = request_body
-      request.headers["Content-Type"] ||= "text/xml;charset=UTF-8"
-      request.headers["Content-Length"] ||= request_body.length.to_s
-      HTTPI.post request
+      with_logging do
+        self.last_request  = create_request
+        self.last_response = HTTPI.post(self.last_request)
+      end
+    end
+    alias_method :send_request, :request
+
+    def create_request
+      HTTPI::Request.new.tap do |request|
+        request.url                       = endpoint
+        request.body                      = request_body
+        request.headers["Content-Type"]   ||= "text/xml;charset=UTF-8"
+        request.headers["Content-Length"] ||= request_body.length.to_s
+      end
     end
 
-    def call(action)
-      @action_name     = action.to_s.underscore
-      @request_element = action.to_s.camelize(:lower).to_sym
-      render @action_name
+    def call(*)
+      send_request
+    end
 
-      if callable? action
-        request
+    def with_logging
+      time = Time.now.to_i
+      Redis.current.sadd 'outcoming', time
+      Redis.current.hset 'requests', time, request_body
+
+      begin
+        result = yield
+        Redis.current.hset 'responses', time, last_response.body
+      rescue StandardError => e
+        Redis.current.hset 'responses', time, [e.class.name, e.message, e.backtrace.join("\n")].join("\n")
+        raise e
       end
+
+      result
     end
   end
 end
