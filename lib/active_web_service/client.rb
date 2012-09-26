@@ -1,10 +1,11 @@
 module ActiveWebService
   class Client
     class EndpointResolver
-      def self.call(wsdl_path_and_binding_name)
-        wsdl_location, binding_name = wsdl_path_and_binding_name.first
-        wsdl_document               = WSDL::Reader::Parser.new(wsdl_location)
-        wsdl_binding                = wsdl_document.bindings[binding_name]
+      def self.call(wsdl_location_and_binding_name)
+        wsdl_location = wsdl_location_and_binding_name[:location]
+        binding_name  = wsdl_location_and_binding_name[:name]
+        wsdl_document = WSDL::Reader::Parser.new(wsdl_location)
+        wsdl_binding  = wsdl_document.bindings[binding_name]
 
         raise ArgumentError, "binding name '#{binding_name}' not found in wsdl '#{wsdl_location}'" unless wsdl_binding
 
@@ -13,13 +14,13 @@ module ActiveWebService
     end
 
     class_attribute :enable, :disabled_actions
-    class_attribute :service, :endpoint, :wsdl_path_and_binding_name
+    class_attribute :service, :endpoint, :wsdl_location_and_binding_name
 
     self.disabled_actions = []
     self.enable           = true
 
-    def self.bind(wsdl_path_and_binding_name = { })
-      self.wsdl_path_and_binding_name = wsdl_path_and_binding_name
+    def self.bind(wsdl_location_and_binding_name = { })
+      self.wsdl_location_and_binding_name = wsdl_location_and_binding_name
     end
 
     attr_reader :request_element
@@ -27,7 +28,7 @@ module ActiveWebService
     attr_accessor :request_body, :action_name
 
     def initialize(endpoint_resolver=EndpointResolver)
-      self.class.endpoint = endpoint_resolver.call(wsdl_path_and_binding_name) unless self.endpoint
+      self.class.endpoint = endpoint_resolver.call(wsdl_location_and_binding_name) unless self.endpoint
     end
 
     private
@@ -38,6 +39,7 @@ module ActiveWebService
         self.last_response = HTTPI.post(self.last_request)
       end
     end
+
     alias_method :send_request, :request
 
     def create_request
