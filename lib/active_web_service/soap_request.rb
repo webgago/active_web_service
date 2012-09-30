@@ -11,6 +11,7 @@ module ActiveWebService
       setup_binding
     end
 
+    # @return [Nokogiri::XML::Document]
     def xml_document
       @xml_document ||= parse_input_data(xml)
     end
@@ -21,10 +22,12 @@ module ActiveWebService
       raise ActionController::RoutingError, e.message
     end
 
+    # @return [String]
     def element_name
       element.name
     end
 
+    # @return [Nokogiri::XML::Node]
     def element
       @element ||= xml_document.xpath('//soap:Body/*[1]', 'soap' => 'http://schemas.xmlsoap.org/soap/envelope/').first.tap do |e|
         raise SoapRequestError, "Could not found message element" if e.nil? || !e.respond_to?(:name) || e.name.blank?
