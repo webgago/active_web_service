@@ -56,7 +56,8 @@ module ActiveWebService
     end
 
     def with_logging
-      time = Time.now.to_i
+      time = Time.now.to_f.to_s.gsub(/\./,'')
+
       Redis.current.sadd 'outcoming', time
       Redis.current.hset 'requests', time, request_body
 
