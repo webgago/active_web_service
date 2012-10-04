@@ -31,16 +31,22 @@ module ActiveWebService
       self.class.endpoint = endpoint_resolver.call(wsdl_location_and_binding_name) unless self.endpoint
     end
 
-    private
+    def send_request(xml, success=nil, failure=nil)
+      self.request_body = xml
 
-    def request
-      with_logging do
-        self.last_request  = create_request
-        self.last_response = HTTPI.post(self.last_request)
+      self.last_request  = create_request
+      self.last_response = HTTPI.post(self.last_request)
+
+      if failure && last_response.respond_to?(:error?) && last_response.error?
+        failure.call self
+      else
+        success && success.call(self)
       end
+
+      last_response
     end
 
-    alias_method :send_request, :request
+    private
 
     def create_request
       HTTPI::Request.new.tap do |request|
@@ -51,25 +57,5 @@ module ActiveWebService
       end
     end
 
-    def call(*)
-      send_request
-    end
-
-    def with_logging
-      time = Time.now.to_f.to_s.gsub(/\./,'')
-
-      Redis.current.sadd 'outcoming', time
-      Redis.current.hset 'requests', time, request_body
-
-      begin
-        result = yield
-        Redis.current.hset 'responses', time, last_response.body
-      rescue StandardError => e
-        Redis.current.hset 'responses', time, [e.class.name, e.message, e.backtrace.join("\n")].join("\n")
-        raise e
-      end
-
-      result
-    end
   end
 end
