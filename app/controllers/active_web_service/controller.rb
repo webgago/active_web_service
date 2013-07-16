@@ -8,7 +8,9 @@ module ActiveWebService
     self.default_content_type = 'text/xml;charset=UTF-8'
 
     def process(name)
-      @_response_body = nil
+      @_request = request
+      @_env = request.env
+      @_env['action_controller.instance'] = self
       self.content_type  = self.default_content_type
       self.response_body = @_env['response.body']
     end
